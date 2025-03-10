@@ -33,6 +33,7 @@ pip-log.txt             # Pip logs
 .vscode/
 .idea/
 *.sublime-workspace
+/.ipynb_checkpoints/
 
 # Executables & Compiled Files
 *.exe
