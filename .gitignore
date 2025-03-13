@@ -1,55 +1,38 @@
-# Logs & Debug Files
-*.log
-*.out
-*.err
+# Rust build files
+/target/
+Cargo.lock
+**/*.rs.bk
 
-# Temporary Files & Caches
+# Tauri build files
+node_modules/
+dist/
+
+# Generated files and ISOs
+iso/
+*.iso
+output/
+build/
+
+# System temporary files
 *.swp
-*.swo
-*.tmp
-*.bak
-*.lock
-*.cache
+*~
 .DS_Store
 Thumbs.db
 
-# System & Package Manager Files
-/venv/                  # Virtual environment for Python
-/__pycache__/           # Python cache files
-*.pyc                   # Compiled Python files
-*.pyo                   # Optimized Python files
-*.egg-info/             # Python package metadata
-pip-log.txt             # Pip logs
+# Logs
+*.log
 
-# Virtual Machines & Containers 
-/.vagrant/
-/*.qcow2
-/*.vdi
-/*.vmdk
-/*.iso
-/*.img
-
-# Editor-Specific Files
+# IDE/Editor files
 .vscode/
 .idea/
+*.code-workspace
 *.sublime-workspace
 /.ipynb_checkpoints/
 
-# Executables & Compiled Files
-*.exe
-*.dll
-*.so
-*.o
-*.a
-*.out
+# Prism specific temp files
+/tmp/
+/mnt/prism/
 
-# Prism-Specific Stuff
-prism.log  
-prism-test/ 
-chroot/ 
+# Added by cargo
 
-# Python Dependencies
-requirements.txt  
-*.env             
-.envrc            
-
+/target

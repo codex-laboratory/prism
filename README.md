@@ -1,21 +1,41 @@
-# Prism - The Minimalist Ubuntu Installer
-Prism is a lightweight, customizable Ubuntu installer that lets you build an OS setup tailored to your needs
+# Prism - The Distro Installer
+Prism aims to be an easy installer built in rust for Linux distros without attaching to a specific one
+(First compatible distro will be Ubuntu) 
 
 ---
 
 # Features
 ## Roadmap
 
-- [ ] Install minimal Ubuntu system
-- [ ] TUI installer
-- [ ] Desktop environment selection
-- [ ] Remove default packages to reduce system footprint
-- [ ] Optional Snap removal
-- [ ] Basic performance optimizations
-- [ ] Live ISO for direct boot & install
-- [ ] Filesystem options: Btrfs, ZFS, LVM
-- [ ] Cloud-init support for automated setups
-- [ ] Advanced customization
+- #### [ ] Core Features 
+- [ ] Modern GUI installer 
+- [ ] Automatic and manual partitioning support
+- [ ] Desktop environment selection 
+- [ ] Optional removal of unwanted packages 
+- [ ] Filesystem options 
+- [ ] Cloud-init integration 
+- [ ] ISO generation 
+- #### [ ] Ubuntu
+- [ ] Base system installation 
+- [ ] Ubuntu advanced customizations
+- #### [ ] Debian
+- [ ] Base system installation 
+- [ ] Debian advanced customizations
+- #### [ ] Arch Linux
+- [ ] Base system installation 
+- [ ] Arch advanced customizations
+- #### [ ] Fedora
+- [ ] Base system installation 
+- [ ] Fedora advanced customizations
+- #### [ ] openSUSE
+- [ ] Base system installation 
+- [ ] openSUSE-specific customizations
+- #### [ ] Manjaro
+- [ ] Base system installation 
+- [ ] Manjaro advanced customizations
+
+
+
 
 # Usage
 

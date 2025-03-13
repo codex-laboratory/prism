@@ -1,15 +1,16 @@
 #!/bin/bash
 
-# Prism - Minimalist Ubuntu Installer
-# Install only what you need.
+# Prism - This script is meant to be used as a base for creating a distro installer
+# for now it only installs ubuntu with some options tho
+# Install only what you need 
 
-set -e  # Error handling
+set -euo pipefail
 
 # Variables
-UBUNTU_VERSION="focal"  # Default Ubuntu version 
+UBUNTU_VERSION="focal"  # Default Ubuntu version
 TARGET_DIR="/mnt/prism"  # Installation directory
-DE_ENV="none"  # Default Desktop Environment
-REMOVE_SNAPS=false  # Default Snap removal option
+DE_ENV="none"            # Default Desktop Environment
+REMOVE_SNAPS=1            # Default is to keep snaps
 
 # Ensuring script runs as root
 if [[ $(id -u) -ne 0 ]]; then
@@ -17,81 +18,102 @@ if [[ $(id -u) -ne 0 ]]; then
     exit 1
 fi
 
-# Install required tools
-apt update && apt install -y debootstrap whiptail
+# Essential packages
+BASE_PACKAGES="linux-generic grub-pc sudo nano network-manager net-tools"
 
-# Ask the user installation configs
-DE_ENV=$(whiptail --title "Prism Installer" --menu "Choose a Desktop Environment" 15 50 4 \
-    "none" "No Desktop (Minimal Server)" \
-    "gnome" "GNOME Desktop" \
-    "kde" "KDE Plasma" \
-    "xfce" "XFCE Desktop" 3>&1 1>&2 2>&3)
-    
-# Check if the user pressed "Cancel"
+echo "Prism: Minimal Ubuntu Installer"
+
+# Install required tools
+apt update
+apt install -y debootstrap whiptail
+
+# Asking the user :p
+DE_ENV=$(whiptail --title "Prism Installer" --menu "Choose Desktop Environment" 15 50 4 \
+  "none" "No Desktop (Minimal Server)" \
+  "gnome" "GNOME Desktop" \
+  "xfce" "XFCE Desktop" \
+  "kde" "KDE Plasma" 3>&1 1>&2 2>&3)
+
 if [ $? -ne 0 ]; then
     echo "Installation cancelled."
     exit 1
 fi
 
-whiptail --title "Prism Installer" --yesno "Do you want to remove Snaps?" 10 50
-REMOVE_SNAPS=$?
+if (whiptail --title "Prism Installer" --yesno "Do you want to remove Snaps?" 10 50); then
+  REMOVE_SNAPS=0
+fi
 
-# Debugging Output
 echo "Selected Desktop: $DE_ENV"
 echo "Remove Snaps? (0=Yes, 1=No): $REMOVE_SNAPS"
 
-# Start the install
+# Bootstrap minimal Ubuntu
 echo "Installing Minimal Ubuntu System..."
-debootstrap --arch=amd64 $UBUNTU_VERSION $TARGET_DIR http://archive.ubuntu.com/ubuntu/
+sudo debootstrap --arch amd64 $UBUNTU_VERSION $TARGET_DIR http://archive.ubuntu.com/ubuntu/
 
-# Basic System Setup
-echo "🛠 Configuring system..."
-echo "proc $TARGET_DIR/proc proc defaults 0 0" >> $TARGET_DIR/etc/fstab
-echo "sysfs $TARGET_DIR/sys sysfs defaults 0 0" >> $TARGET_DIR/etc/fstab
-
-# Set up hostname and network
-echo "prism" > $TARGET_DIR/etc/hostname
-echo "127.0.1.1 prism" >> $TARGET_DIR/etc/hosts
-
-# Configure fstab
-cat << EOF > $TARGET_DIR/etc/fstab
-proc /proc proc defaults 0 0
+# Basic Configuration
+echo "🛠 Configuring basic settings..."
+echo "prism" | sudo tee $TARGET_DIR/etc/hostname
+cat <<EOF | sudo tee $TARGET_DIR/etc/fstab
+proc  /proc proc defaults 0 0
 sysfs /sys sysfs defaults 0 0
 tmpfs /tmp tmpfs defaults 0 0
 EOF
 
-# Install kernel and essential utilities
-echo "📦 Installing essential packages..."
-chroot $TARGET_DIR apt update
-chroot $TARGET_DIR apt install -y linux-generic grub2 sudo nano network-manager
+# Mount necessary filesystems 
+sudo mount --bind /dev $TARGET_DIR/dev
+sudo mount --bind /dev/pts $TARGET_DIR/dev/pts
+sudo mount --bind /proc $TARGET_DIR/proc
+sudo mount --bind /sys $TARGET_DIR/sys
 
-# Apply selected Desktop Environment
-echo "Applying selected Desktop Environment..."
-if [[ $DE_ENV == "gnome" ]]; then
-    chroot $TARGET_DIR apt install -y ubuntu-desktop
-elif [[ $DE_ENV == "kde" ]]; then
-    chroot $TARGET_DIR apt install -y kubuntu-desktop
-elif [[ $DE_ENV == "xfce" ]]; then
-    chroot $TARGET_DIR apt install -y xubuntu-desktop
+# Install packages inside chroot
+echo "Installing essential packages..."
+sudo chroot $TARGET_DIR apt update
+sudo chroot $TARGET_DIR apt install -y $BASE_PACKAGES
+
+# Enable Universe repository (required for some DE packages)
+sudo chroot "$TARGET_DIR" apt install -y software-properties-common
+sudo chroot "$TARGET_DIR" add-apt-repository universe
+sudo chroot "$TARGET_DIR" apt update
+
+# Desktop Environment Installation
+if [[ $DE_ENV != "none" ]]; then
+  if [[ $DE_ENV == "xfce" ]]; then
+    sudo chroot $TARGET_DIR apt install -y xubuntu-desktop
+  elif [[ $DE_ENV == "gnome" ]]; then
+    sudo chroot $TARGET_DIR apt install -y ubuntu-desktop
+  elif [[ $DE_ENV == "kde" ]]; then
+    sudo chroot $TARGET_DIR apt install -y kde-plasma-desktop
+  fi
+else
+  echo "No desktop environment selected. Skipping..."
 fi
 
-# Snap Removal (if chosen)
+# Remove snaps if selected :)))
 if [[ $REMOVE_SNAPS -eq 0 ]]; then
-    echo "Removing Snaps..."
-    chroot $TARGET_DIR apt purge -y snapd
+  echo "Removing Snaps..."
+  sudo chroot $TARGET_DIR apt purge -y snapd
 fi
 
-# Set up a new user
-echo "Creating default user..."
-chroot $TARGET_DIR adduser --disabled-password --gecos "" prismuser
-chroot $TARGET_DIR usermod -aG sudo prismuser
+# Set hostname and basic network config
+echo "127.0.0.1 prism" | sudo tee -a $TARGET_DIR/etc/hosts
 
+# Setting up GRUB bootloader (pleasework)
 echo "Setting up GRUB bootloader..."
-chroot $TARGET_DIR grub-install --target=i386-pc --recheck /dev/sda
-chroot $TARGET_DIR update-grub
+sudo chroot "$TARGET_DIR" apt install -y grub-pc grub-common
+sudo chroot "$TARGET_DIR" grub-install --target=i386-pc --recheck /dev/sda
+sudo chroot "$TARGET_DIR" update-grub
 
-# Cleanup & Finish
+# Add default user
+sudo chroot $TARGET_DIR useradd -m -G sudo -s /bin/bash prism
+sudo chroot $TARGET_DIR passwd prism
+
+# Cleanup 
+sudo umount $TARGET_DIR/dev/pts
+sudo umount $TARGET_DIR/dev
+sudo umount $TARGET_DIR/sys
+sudo umount $TARGET_DIR/proc
+
 echo "Prism installation complete!"
-echo "Reboot into your new minimal Ubuntu system."
-exit 0
+echo "Reboot into your minimalist Ubuntu: sudo reboot"
 
+exit 0
